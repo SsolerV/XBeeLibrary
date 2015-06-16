@@ -8,12 +8,13 @@ Created by: Sergio Soler Valera
 
 //It creates the object with the constructor
 //                 time  SerialPort  IdentifierXbee
-XBeePoint2Point XBEE1(30, SERIALPORT0, BYTE_ADDR_GROUND);
+XBeePoint2Point XBEE1(30, Serial, BYTE_ADDR_GROUND);
 
 void setup()
 {
   //It initializes the serial port to send messages, baudrate = 57600
-  XBEE1.Initialize(BAUDRATE3);
+  //XBEE1.Initialize(BAUDRATE3);
+  Serial.begin(57600);
   
 }
 

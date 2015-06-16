@@ -12,7 +12,9 @@
     #include "WProgram.h"
 #endif
 
+#include "HardwareSerial.h"
 #include <XBeePoint2Point.h>
+
 
 //This is the constructor
 //It requires the time between frames, the serial port and the identifier
@@ -20,7 +22,7 @@
 //If his IDENTIFIER is Air, this wants to say the other Xbee must be Ground
 //It assign the other to IDENTIFIER_AUX for sending the frame to the other XBee
 //Otherwise, the IDENTIFIER will be GROUND  and the IDENTIFIER_AUX = AIR
-XBeePoint2Point::XBeePoint2Point(int time = 30, int serialPort = 0, int identifier = BYTE_ADDR_AIR)
+XBeePoint2Point::XBeePoint2Point(int time = 30, Stream &serial = Serial, int identifier = BYTE_ADDR_AIR)
 {
     //To assign the identifier to the global variable
     if (identifier == BYTE_ADDR_AIR)
@@ -36,144 +38,10 @@ XBeePoint2Point::XBeePoint2Point(int time = 30, int serialPort = 0, int identifi
     
     //It assign the local value to the global variable
     //These global variables will not be modified anymore
-    SERIALPORT = serialPort;    //Serial port by defect Serial
+    _serial = &serial;   //Serial port by defect Serial
     TIME = time;        //Default time is 30 milliseconds
     LAST_TIME = 0;      //It initialize this variable when the program starts
     
-}
-
-
-//Setup the Serial Port and the baudrate. This function must be used into void setup()
-/***********************************************
-BAUDRATE0 ----------- 9600
-BAUDRATE1 ----------- 19200
-BAUDRATE2 ----------- 38400
-BAUDRATE3 ----------- 57600
-BAUDRATE4 ----------- 115200
-************************************************/
-void XBeePoint2Point::Initialize(int baudrate)
-{
-    switch (SERIALPORT) {
-        case 0:
-            
-            if (baudrate == 0) {
-                Serial.begin(9600);
-            }
-            else if (baudrate == 1){
-                Serial.begin(19200);
-            }
-            else if (baudrate == 2){
-                Serial.begin(38400);
-            }
-            else if (baudrate == 3){
-                Serial.begin(57600);
-            }
-            else if (baudrate == 4){
-                Serial.begin(115200);
-            }
-            else {
-                Serial.begin(9600);
-            }
-            
-            break;
-            
-    //Comment these three cases if you are not using the Arduino MEGA
-       /*
-        case 1:
-            
-            if (baudrate == 0) {
-            Serial1.begin(9600);
-            }
-            else if (baudrate == 1){
-            Serial.begin(19200);
-            }
-            else if (baudrate == 2){
-            Serial1.begin(38400);
-            }
-            else if (baudrate == 3){
-            Serial1.begin(57600);
-            }
-            else if (baudrate == 4){
-            Serial1.begin(115200);
-            }
-            else {
-            Serial1.begin(9600);
-            }
-        
-            break;
-
-        
-        case 2:
-            
-            if (baudrate == 0) {
-            Serial2.begin(9600);
-            }
-            else if (baudrate == 1){
-            Serial2.begin(19200);
-            }
-            else if (baudrate == 2){
-            Serial2.begin(38400);
-            }
-            else if (baudrate == 3){
-            Serial2.begin(57600);
-            }
-            else if (baudrate == 4){
-            Serial2.begin(115200);
-            }
-            else {
-            Serial2.begin(9600);
-            }
-
-            break;
-        
-        case 3:
-        
-            if (baudrate == 0) {
-            Serial.begin(9600);
-            }
-            else if (baudrate == 1){
-            Serial.begin(19200);
-            }
-            else if (baudrate == 2){
-            Serial.begin(38400);
-            }
-            else if (baudrate == 3){
-            Serial.begin(57600);
-            }
-            else if (baudrate == 4){
-            Serial.begin(115200);
-            }
-            else {
-            Serial.begin(9600);
-            }
-        
-            break;
-        */
-        
-        default:
-            
-            
-            if (baudrate == 0) {
-                Serial.begin(9600);
-            }
-            else if (baudrate == 1){
-                Serial.begin(19200);
-            }
-            else if (baudrate == 2){
-                Serial.begin(38400);
-            }
-            else if (baudrate == 3){
-                Serial.begin(57600);
-            }
-            else if (baudrate == 4){
-                Serial.begin(115200);
-            }
-            else {
-                Serial.begin(9600);
-            }
-
-            break;
-    }
 }
 
 
@@ -190,249 +58,63 @@ void XBeePoint2Point::Send(unsigned char* data,int sizeFrame, int initFrame)
     if (timeNow >= TIME) {
         
         LAST_TIME = millis();
-    
-        //This part select the Serial Port and send the information by the selected Port
-        switch (SERIALPORT) {
-            case 0:
-            
-                Serial.write(initFrame);
-                Serial.write(IDENTIFIER_AUX); ack = IDENTIFIER_AUX;
-                
-                for (int i = 0; i < sizeFrame; i++) {
-                    Serial.write(data[i]); ack += data[i];
-                }
-                
-                Serial.write(ack);
-                
-                break;
-            
-                
-    //Comment these three cases if you are not using the Arduino MEGA
-    /*
-
-            case 1:
-                Serial1.write(auxData, sizeFrame);
-            
-            case 2:
-                Serial2.write(auxData, sizeFrame);
-                break;
-            
-            case 3:
-                Serial3.write(auxData, sizeFrame);
-                break;
-            
-     */
-                
-            default:
-                break;
+        
+        _serial->write(initFrame);
+        _serial->write(IDENTIFIER_AUX); ack = IDENTIFIER_AUX;
+        
+        for (int i = 0; i < sizeFrame; i++) {
+            _serial->write(data[i]); ack += data[i];
         }
         
+        _serial->write(ack);
+        
     }
-
+    
     
 }
 
 
 //This function can be utilized to receive the data frame from the other XBee
-//It receive the array to store the data and the size of the data frame
+//It receives the array to store the data and the size of the data frame
 void XBeePoint2Point::Receive(unsigned char* data, int sizeFrame, int initFrame)
 {
     int ack, ackReceived;
     int auxData[sizeFrame];
     int reSize = sizeFrame + 3;
     
-    switch (SERIALPORT) {
-        case 0:
-            
-            if(Serial.available() >= reSize)
-            {
-                char init = Serial.read();
-                
-                if(init == initFrame)
-                {
-                    digitalWrite(13, HIGH);
-                    
-                    char addr = Serial.read();
-                    
-                    if(addr == IDENTIFIER)
-                    {
-                        ack = addr;
-                        
-                        for(int i = 0; i < sizeFrame; i++)
-                        {
-                            auxData[i] = Serial.read();
-                            ack += auxData[i];
-                            
-                        }
-                        ack = (unsigned char)(ack);
-                        
-                        ackReceived = Serial.read();
-                        
-                        if (ackReceived == ack) {
-                            for (int i = 0; i < sizeFrame; i++) {
-                                data[i] = auxData[i];
-                            }
-                        }
-                    }
-                    
-                }
-            }
-            break;
-        
-            //Comment these three cases if you are not using Arduino Mega
-            /*
-        case 1://Probando en mega
-            
-            if(Serial1.available() >= reSize)
-            {
-                char init = Serial1.read();
-
-                if(init == initFrame)
-                {
-                    digitalWrite(13, HIGH);
-                    
-                    char addr = Serial1.read();
-             
-                    if(addr == IDENTIFIER)
-                    {
-                        ack = addr;
-                        
-                        for(int i = 0; i < sizeFrame; i++)
-                        {
-                            auxData[i] = Serial1.read();
-                            ack += auxData[i];
-                            
-                        }
-                        
-                        ack = (unsigned char)(ack);
-                        
-                        ackReceived = Serial1.read();
-                        
-                        if (ackReceived == ack) {
-                            for (int i = 0; i < sizeFrame; i++) {
-                                data[i] = auxData[i];
-                            }
-                        }
-                    }
-                    
-                }
-            }
-
-            break;
-         
-        case 2:
-            
-            if(Serial2.available() >= reSize)
-            {
-                char init = Serial2.read();
-                
-                if(init == initFrame)
-                {
-                    digitalWrite(13, HIGH);
-                    
-                    char addr = Serial2.read();
-                    
-                    if(addr == IDENTIFIER)
-                    {
-                        ack = addr;
-                        
-                        for(int i = 0; i < sizeFrame; i++)
-                        {
-                            auxData[i] = Serial2.read();
-                            ack += auxData[i];
-                            
-                        }
-                        ack = (unsigned char)(ack);
-                        
-                        ackReceived = Serial2.read();
-                        
-                        if (ackReceived == ack) {
-                            for (int i = 0; i < sizeFrame; i++) {
-                                data[i] = auxData[i];
-                            }
-                        }
-                    }
-                    
-                }
-            }
-
-            break;
-            
-        case 3:
-            
-            if(Serial3.available() >= reSize)
-            {
-                char init = Serial3.read();
-                
-                if(init == initFrame)
-                {
-                    digitalWrite(13, HIGH);
-                    
-                    char addr = Serial3.read();
-                    
-                    if(addr == IDENTIFIER)
-                    {
-                        ack = addr;
-                        
-                        for(int i = 0; i < sizeFrame; i++)
-                        {
-                            auxData[i] = Serial3.read();
-                            ack += auxData[i];
-                            
-                        }
-                        ack = (unsigned char)(ack);
-                        
-                        ackReceived = Serial3.read();
-                        
-                        if (ackReceived == ack) {
-                            for (int i = 0; i < sizeFrame; i++) {
-                                data[i] = auxData[i];
-                            }
-                        }
-                    }
-                    
-                }
-            }
-
-            break;*/
-         
-        default:
-            
-            if(Serial.available() >= reSize)
-            {
-                char init = Serial.read();
-                
-                if(init == initFrame)
-                {
-                    digitalWrite(13, HIGH);
-                    
-                    char addr = Serial.read();
-                    
-                    if(addr == IDENTIFIER)
-                    {
-                        ack = addr;
-                        
-                        for(int i = 0; i < sizeFrame; i++)
-                        {
-                            auxData[i] = Serial.read();
-                            ack += auxData[i];
-                            
-                        }
-                        ack = (unsigned char)(ack);
-                        
-                        ackReceived = Serial.read();
-                        
-                        if (ackReceived == ack) {
-                            for (int i = 0; i < sizeFrame; i++) {
-                                data[i] = auxData[i];
-                            }
-                        }
-                    }
-                    
-                }
-            }
-
-            break;
-    }
     
+    if(_serial->available() >= reSize)
+    {
+        char init = _serial->read();
+        
+        if(init == initFrame)
+        {
+            digitalWrite(13, HIGH);
+            
+            char addr = _serial->read();
+            
+            if(addr == IDENTIFIER)
+            {
+                ack = addr;
+                
+                for(int i = 0; i < sizeFrame; i++)
+                {
+                    auxData[i] = _serial->read();
+                    ack += auxData[i];
+                    
+                }
+                ack = (unsigned char)(ack);
+                
+                ackReceived = _serial->read();
+                
+                if (ackReceived == ack) {
+                    for (int i = 0; i < sizeFrame; i++) {
+                        data[i] = auxData[i];
+                    }
+                }
+            }
+            
+        }
+    }
+
 }

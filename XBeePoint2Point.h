@@ -10,6 +10,14 @@
 #define XBeePoint2Point_h
 #define LIBRARY_VERSION 0.0.1
 
+#if ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
+//#include <inttypes.h>
+
 class XBeePoint2Point
 {
     
@@ -42,9 +50,9 @@ public:
     
     
     //commonly used functions **************************************************************************
-    XBeePoint2Point(int, int, int);       // Default constructor
+    //XBeePoint2Point(int, int, int);       // Default constructor
     
-    void Initialize(int baudrate);      //Open Serial Port and establish baudrate
+    XBeePoint2Point(int, Stream &serial, int);
     
     void Send(unsigned char*, int, int);    //Send the information to the other XBee
     
@@ -60,6 +68,7 @@ private:
     int* DATA;
     unsigned int TIME;      //Time between messages
     unsigned long LAST_TIME;     //Store the time in a global value to control the time between messages
+    Stream* _serial;
     
    
 
